@@ -99,6 +99,7 @@ button1 = tk.Button(root, text="Encrypt", command=on_button_click)
 button1.pack(side= "left",pady=20, padx=20)
 
 
+#Decryot
 def on_button_click():
     password = input("Enter your password")
     with open("salt.txt", 'rb') as f:
@@ -107,19 +108,24 @@ def on_button_click():
     dec_key = PBKDF2(password, salt, dkLen=32)
 
     dec_iv = input("Enter your initialization vector (16 characters): ")
+    try:
+        with open('Encrypted.txt', 'rb') as f:
+            original_iv = f.read(16)
+            decrypt_data = f.read()
 
-    with open('Encrypted.txt', 'rb') as f:
-        original_iv = f.read(16)
-        decrypt_data = f.read()
+        if dec_iv == "":
+            cipher = AES.new(dec_key, AES.MODE_CBC)
+        else:
+            cipher = AES.new(dec_key, AES.MODE_CBC, iv=dec_iv.encode())
 
-    if dec_iv == "":
-        cipher = AES.new(dec_key, AES.MODE_CBC)
-    else:
-        cipher = AES.new(dec_key, AES.MODE_CBC, iv=dec_iv.encode())
+        original = unpad(cipher.decrypt(decrypt_data), AES.block_size)
+        with open('Decrypted.txt', 'wb') as f:
+            f.write(original)
+    except Exception as e:
+        print("Decryption error:", e)
+        return None
 
-    original = unpad(cipher.decrypt(decrypt_data), AES.block_size)
-    with open('Decrypted.txt', 'wb') as f:
-        f.write(original)
+
 
 
 root.title("Button Template")
