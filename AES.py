@@ -3,135 +3,177 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog,ttk
+from tkinter import simpledialog, filedialog, messagebox
+
+
+
+
+# Constants
+SALT_FILE = "salt.txt"
+ENCRYPTED_FILE = "Encrypted.txt"
+DECRYPTED_FILE = "Decrypted.txt"
+AES_BLOCK_SIZE = AES.block_size
+
+
+def generate_salt_file():
+    simple_key = get_random_bytes(32)
+    with open(SALT_FILE, 'wb') as f:
+        f.write(simple_key)
+
+
+def derive_key_from_password(password, salt):
+    return PBKDF2(password, salt, dkLen=32)
+
+
+def encrypt_file(file_path, key, iv):
+    with open(file_path, "rb") as f:
+        message = f.read()
+
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ciphered_data = cipher.encrypt(pad(message, AES_BLOCK_SIZE))
+
+    with open(ENCRYPTED_FILE, 'wb') as f:
+        f.write(iv)
+        f.write(ciphered_data)
+
+
+def decrypt_file(file_path, key, iv):
+    try:
+        with open(file_path, 'rb') as f:
+            original_iv = f.read(16)
+            decrypt_data = f.read()
+
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
+
+        with open(DECRYPTED_FILE, 'wb') as f:
+            f.write(original)
+    except Exception as e:
+        print(f"Decryption error: {e}")
 
 
 def choose_file():
     global file_path
     file_path = filedialog.askopenfilename(title="Select a File")
     if file_path:
-        # Perform your operation with the selected file
         result_label.config(text=f"Selected File: {file_path}")
-        # Add your custom logic here using the 'file_path'
 
 
-# Create the main window
-root = tk.Tk()
-root.title("File Selection Example")
+def on_encrypt_button_click():
+    generate_salt_file()
 
-# Create a button to trigger the file dialog
-button = tk.Button(root, text="Choose File", command=choose_file)
-button.pack(pady=20)
+    # GUI prompts for password and initialization vector
+    password = simpledialog.askstring("Input", "Enter your encryption password:", show="*")
+    iv = simpledialog.askstring("Input", "Enter your initialization vector (16 characters):")
 
-# Create a label to display the selected file path
-result_label = tk.Label(root, text="Selected File: ")
-result_label.pack()
+    if not password or not iv or len(iv) != 16:
+        messagebox.showerror("Error", "Invalid password or initialization vector.")
+        return
 
-
-#
-# def open_file_dialog():
-#     global selected_file_path
-#     selected_file_path = filedialog.askopenfilename(title="Select a File")
-#     if selected_file_path:
-#         label.config(text=f"Selected File: {selected_file_path}")
-#
-#
-# # Create the main window
-# root = tk.Tk()
-# root.title("File Selection Demo")
-#
-# # Create a button to trigger the file dialog
-# button = tk.Button(root, text="Select File", command=open_file_dialog)
-# button.pack(pady=20)
-#
-# # Create a label to display the selected file path
-# label = tk.Label(root, text="Selected File: ")
-# label.pack()
-
-
-def on_button_click():
-    simple_key = get_random_bytes(32)
-    with open("salt.txt", 'wb') as f:
-        f.write(simple_key)
-
-    with open("salt.txt", 'rb') as f:
+    with open(SALT_FILE, 'rb') as f:
         salt = f.read()
 
-    # same salt same password result in the same KEY
-    password = input("Please enter your password: ")
+    key = derive_key_from_password(password, salt)
 
-    # key used to encrypt a message
-    key = PBKDF2(password, salt, dkLen=32)
-    # print(key)
-
-    # Encryption
-    with open(file_path, "rb") as f:
-        message = f.read()
-
-    iv = input("Enter your initialization vector (16 characters are required: ")
-
-    cipher = AES.new(key, AES.MODE_CBC)
-
-    if iv == "":
-        cipher = AES.new(key, AES.MODE_CBC)
-    elif len(iv) == 16:
-        print(len(iv))
-        cipher = AES.new(key, AES.MODE_CBC, iv.encode())
-    else:
-        print("Error in initialization vector")
-
-    ciphered_data = cipher.encrypt(pad(message, AES.block_size))
-
-    if iv == "":
-        with open('Encrypted.txt', 'wb') as f:
-            f.write(cipher.iv)
-            f.write(ciphered_data)
-    else:
-        with open('Encrypted.txt', 'wb') as f:
-            f.write(iv.encode())
-            f.write(ciphered_data)
-
-
-root.title("Button Template")
-
-# Create a button with a callback to on_button_click
-button1 = tk.Button(root, text="Encrypt", command=on_button_click)
-button1.pack(side= "left",pady=20, padx=20)
-
-
-#Decryot
-def on_button_click():
-    password = input("Enter your password")
-    with open("salt.txt", 'rb') as f:
-        salt = f.read()
-
-    dec_key = PBKDF2(password, salt, dkLen=32)
-
-    dec_iv = input("Enter your initialization vector (16 characters): ")
     try:
-        with open('Encrypted.txt', 'rb') as f:
-            original_iv = f.read(16)
-            decrypt_data = f.read()
-
-        if dec_iv == "":
-            cipher = AES.new(dec_key, AES.MODE_CBC)
-        else:
-            cipher = AES.new(dec_key, AES.MODE_CBC, iv=dec_iv.encode())
-
-        original = unpad(cipher.decrypt(decrypt_data), AES.block_size)
-        with open('Decrypted.txt', 'wb') as f:
-            f.write(original)
+        encrypt_file(file_path, key, iv.encode())
+        messagebox.showinfo("Success", "Encryption completed successfully.")
     except Exception as e:
-        print("Decryption error:", e)
-        return None
+        messagebox.showerror("Error", f"Encryption error: {e}")
+
+def on_decrypt_button_click():
+    # GUI prompts for password and initialization vector
+    password = simpledialog.askstring("Input", "Enter your decryption password:", show="*")
+    dec_iv = simpledialog.askstring("Input", "Enter your initialization vector (16 characters):")
+
+    if not password or not dec_iv or len(dec_iv) != 16:
+        messagebox.showerror("Error", "Invalid password or initialization vector.")
+        return
+
+    with open(SALT_FILE, 'rb') as f:
+        salt = f.read()
+
+    key = derive_key_from_password(password, salt)
+
+    try:
+        decrypt_file(ENCRYPTED_FILE, key, dec_iv.encode())
+        messagebox.showinfo("Success", "Decryption completed successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Decryption error: {e}")
+
+
+def on_sign_button_click():
+    # GUI prompt for private key path
+    private_key_path = filedialog.askopenfilename(title="Select Private Key File")
+
+    if not private_key_path:
+        messagebox.showerror("Error", "Invalid private key path.")
+        return
+
+    with open(private_key_path, 'rb') as f:
+        private_key = f.read()
+
+    try:
+        sign_file(file_path, private_key)
+        messagebox.showinfo("Success", "File signed successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Signing error: {e}")
+
+
+def on_verify_button_click():
+    # GUI prompt for public key path
+    public_key_path = filedialog.askopenfilename(title="Select Public Key File")
+
+    if not public_key_path:
+        messagebox.showerror("Error", "Invalid public key path.")
+        return
+
+    with open(public_key_path, 'rb') as f:
+        public_key = f.read()
+
+    try:
+        verify_signature(file_path, public_key)
+        messagebox.showinfo("Success", "Signature verified successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Verification error: {e}")
+
+
+def on_sign_and_encrypt_button_click():
+    # Include the logic for signing and encrypting here
+    pass
 
 
 
+# GUI
+root = tk.Tk()
+root.title("File Encryption/Decryption")
+frm = ttk.Frame(root, padding=10)
+frm.grid()
 
-root.title("Button Template")
+# File Selection Section
+button_select_file = tk.Button(frm, text="Choose File", command=choose_file)
+button_select_file.grid(row=0, column=0, pady=20)
 
-# Create a button with a callback to on_button_click
-button2 = tk.Button(root, text="Decrypt", command=on_button_click)
-button2.pack(side = "right",pady=20, padx=10)
+result_label = tk.Label(frm, text="Selected File: ")
+result_label.grid(row=1, column=0)
+
+# Encryption Section
+button_encrypt = tk.Button(frm, text="Encrypt", command=on_encrypt_button_click)
+button_encrypt.grid(row=2, column=0, pady=20, padx=20)
+
+# Decryption Section
+button_decrypt = tk.Button(frm, text="Decrypt", command=on_decrypt_button_click)
+button_decrypt.grid(row=2, column=1, pady=20, padx=10)
+
+# Digital Signature Section
+button_sign = tk.Button(frm, text="Sign", command=on_sign_button_click)
+button_sign.grid(row=3, column=0, pady=20)
+
+button_verify = tk.Button(frm, text="Verify Signature", command=on_verify_button_click)
+button_verify.grid(row=3, column=1, pady=20)
+
+button_sign_and_encrypt = tk.Button(frm, text="Sign and Encrypt", command=on_sign_and_encrypt_button_click)
+button_sign_and_encrypt.grid(row=4, column=0, columnspan=2, pady=20)
 
 root.mainloop()
