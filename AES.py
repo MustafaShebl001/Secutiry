@@ -1,6 +1,7 @@
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
 import tkinter as tk
 from tkinter import filedialog,ttk
@@ -16,8 +17,10 @@ IV = b'0000000000000000'
 ENCRYPTED_FILE = "Encrypted.txt"
 DECRYPTED_FILE = "Decrypted.txt"
 AES_BLOCK_SIZE = AES.block_size
+PRIVATE_KEY_FILE = "private_key.pem"
+PUBLIC_KEY_FILE = "public_key.pem"
 
-
+#Normal functions
 def generate_salt_file():
     simple_key = get_random_bytes(32)
     with open(SALT_FILE, 'wb') as f:
@@ -62,6 +65,41 @@ def choose_file():
         result_label.config(text=f"Selected File: {file_path}")
     else:
         tk.messagebox.showerror(title="file path",message="Please choose a file to do operations on")
+
+#Generate RSA key pairs and save them to files
+def generate_rsa_key_pair():
+    key = RSA.generate(2048)
+    private_key = key.export_key()
+    public_key = key.publickey().export_key()
+    
+    with open(PRIVATE_KEY_FILE, 'wb') as f:
+        f.write(private_key)
+        
+    with open(PUBLIC_KEY_FILE, 'wb') as f:
+        f.write(public_key)
+
+def verify_and_decrypt_file(file_path, signature_file, key):
+    try:
+        # Load RSA public key
+        with open(PUBLIC_KEY_FILE, 'rb') as f:
+            public_key = RSA.import_key(f.read())
+
+        # Verify the signature
+        with open(signature_file, 'rb') as f:
+            signature = f.read()
+        with open(file_path, 'rb') as f:
+            data_to_verify = f.read()
+        public_key.verify(data_to_verify, signature)
+
+        # Decrypt the file
+        decrypt_file(file_path, key)
+
+        messagebox.showinfo("Success", "Verification and Decryption completed successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Verification and Decryption error: {e}")
+
+#On_click functions
+
 
 
 def on_encrypt_button_click():
@@ -156,9 +194,75 @@ def on_decrypt_button_click():
 #         messagebox.showerror("Error", f"Verification error: {e}")
 
 
+
 def on_sign_and_encrypt_button_click():
-    # Include the logic for signing and encrypting here
-    pass
+    # Prompt for password
+    password = simpledialog.askstring("Password", "Enter your encryption password:", show="*")
+    if not password:
+        messagebox.showerror("Empty password", "Please enter a Password")
+        return
+
+    # Load RSA private key
+    with open(PRIVATE_KEY_FILE, 'rb') as f:
+        private_key = RSA.import_key(f.read())
+
+    # Prompt for user input (file to sign and encrypt)
+    file_to_sign_and_encrypt = filedialog.askopenfilename(title="Select a File to Sign and Encrypt")
+    if not file_to_sign_and_encrypt:
+        messagebox.showerror("File not selected", "Please choose a file to sign and encrypt.")
+        return
+
+    # Generate salt and derive AES key from password
+    generate_salt_file()
+    with open(SALT_FILE, 'rb') as f:
+        salt = f.read()
+    key = derive_key_from_password(password, salt)
+
+    # Sign the file
+    with open(file_to_sign_and_encrypt, 'rb') as f:
+        data_to_sign = f.read()
+    signature = private_key.sign(data_to_sign, '')
+
+    # Encrypt the file
+    encrypt_file(file_to_sign_and_encrypt, key)
+
+    # Save the signature to a file
+    signature_file = file_to_sign_and_encrypt + ".sig"
+    with open(signature_file, 'wb') as f:
+        f.write(signature)
+
+    messagebox.showinfo("Success", "Sign and Encrypt completed successfully.")
+
+
+def on_verify_and_decrypt_button_click():
+    # Prompt for password
+    password = simpledialog.askstring("Password", "Enter your decryption password:", show="*")
+    if not password:
+        messagebox.showerror("Empty password", "Please enter a Password")
+        return
+
+    # Generate salt and derive AES key from password
+    generate_salt_file()
+    with open(SALT_FILE, 'rb') as f:
+        salt = f.read()
+    key = derive_key_from_password(password, salt)
+
+    # Prompt for user input (file to verify and decrypt)
+    file_to_verify_and_decrypt = filedialog.askopenfilename(title="Select a File to Verify and Decrypt")
+    if not file_to_verify_and_decrypt:
+        messagebox.showerror("File not selected", "Please choose a file to verify and decrypt.")
+        return
+
+    # Prompt for user input (signature file)
+    signature_file = filedialog.askopenfilename(title="Select Signature File")
+    if not signature_file:
+        messagebox.showerror("Signature file not selected", "Please choose a signature file.")
+        return
+
+    # Verify and decrypt the file
+    verify_and_decrypt_file(file_to_verify_and_decrypt, signature_file, key)
+
+
 
 # GUI
 root = tk.Tk()
@@ -190,5 +294,8 @@ button_decrypt.grid(row=2, column=1, pady=20, padx=10)
 
 button_sign_and_encrypt = tk.Button(frm, text="Sign and Encrypt", command=on_sign_and_encrypt_button_click)
 button_sign_and_encrypt.grid(row=4, column=0, columnspan=2, pady=20)
+# Verify and Decrypt Section
+button_verify_and_decrypt = tk.Button(frm, text="Verify and Decrypt", command=on_verify_and_decrypt_button_click)
+button_verify_and_decrypt.grid(row=5, column=0, columnspan=2, pady=20)
 
 root.mainloop()
