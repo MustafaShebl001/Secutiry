@@ -5,12 +5,15 @@ from Crypto.Util.Padding import pad, unpad
 import tkinter as tk
 from tkinter import filedialog,ttk
 from tkinter import simpledialog, filedialog, messagebox
-
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 
 
 
 # Constants
 SALT_FILE = "salt.txt"
+SIGNATURE_FILE = "signature.pem"
 file_path = ""
 IV = b'0000000000000000'
 ENCRYPTED_FILE = "Encrypted.txt"
@@ -23,6 +26,10 @@ def generate_salt_file():
     with open(SALT_FILE, 'wb') as f:
         f.write(simple_key)
 
+
+def generate_Signature_file(signature):
+        with open(SIGNATURE_FILE, 'wb') as f:
+            f.write(signature)
 
 def derive_key_from_password(password, salt):
     return PBKDF2(password, salt, dkLen=32)
@@ -119,41 +126,71 @@ def on_decrypt_button_click():
     except Exception as e:
         messagebox.showinfo("Error", f"Decryption error: {e}")
 
-#
-# def on_sign_button_click():
-#     # GUI prompt for private key path
-#     private_key_path = filedialog.askopenfilename(title="Select Private Key File")
-#
-#     if not private_key_path:
-#         messagebox.showerror("Error", "Invalid private key path.")
-#         return
-#
-#     with open(private_key_path, 'rb') as f:
-#         private_key = f.read()
-#
-#     try:
-#         sign_file(file_path, private_key)
-#         messagebox.showinfo("Success", "File signed successfully.")
-#     except Exception as e:
-#         messagebox.showerror("Error", f"Signing error: {e}")
-#
-#
-# def on_verify_button_click():
-#     # GUI prompt for public key path
-#     public_key_path = filedialog.askopenfilename(title="Select Public Key File")
-#
-#     if not public_key_path:
-#         messagebox.showerror("Error", "Invalid public key path.")
-#         return
-#
-#     with open(public_key_path, 'rb') as f:
-#         public_key = f.read()
-#
-#     try:
-#         verify_signature(file_path, public_key)
-#         messagebox.showinfo("Success", "Signature verified successfully.")
-#     except Exception as e:
-#         messagebox.showerror("Error", f"Verification error: {e}")
+def sign_file(file_path,private_key):
+
+        with open(file_path, "rb") as f:
+            message = f.read() 
+
+        hash_value = SHA256.new(message)
+        key = RSA.import_key(private_key)
+
+        # Get the signature
+        signer = PKCS1_v1_5.new(key)
+        signature = signer.sign(hash_value)
+        generate_Signature_file(signature)
+
+
+def verify_signature(file_path, public_key):
+    
+        with open(file_path, "rb") as f:
+            message = f.read() 
+
+        # Open the recieved signature file:
+        with open('signature.pem', "rb") as f:
+            signature = f.read() 
+        key = RSA.importKey(public_key)
+
+        generated_hash_value = SHA256.new(message)
+        # Check if the generated and recieved values are the same
+        PKCS1_v1_5.new(key).verify(generated_hash_value,signature)
+        
+        
+
+def on_sign_button_click():
+    # GUI prompt for private key path
+    global  private_key_path 
+    private_key_path = filedialog.askopenfilename(title="Select Private Key File")
+
+    if not private_key_path:
+        messagebox.showerror("Error", "Invalid private key path.")
+        return
+
+    with open(private_key_path, 'rb') as f:
+        private_key = f.read()
+
+    try:
+        sign_file(file_path, private_key)
+        messagebox.showinfo("Success", "File signed successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Signing error: {e}")
+
+
+def on_verify_button_click():
+    # GUI prompt for public key path
+    public_key_path = filedialog.askopenfilename(title="Select Public Key File")
+
+    if not public_key_path:
+        messagebox.showerror("Error", "Invalid public key path.")
+        return
+
+    with open(public_key_path, 'rb') as f:
+        public_key = f.read()
+
+    try:
+        verify_signature(file_path, public_key)
+        messagebox.showinfo("Success", "Signature verified successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Verification error: {e}")
 
 
 def on_sign_and_encrypt_button_click():
