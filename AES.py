@@ -1,7 +1,6 @@
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
-from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
 import tkinter as tk
 from tkinter import filedialog,ttk
@@ -105,6 +104,36 @@ def verify_and_decrypt_file(file_path, signature_file, key):
     except Exception as e:
         messagebox.showerror("Error", f"Verification and Decryption error: {e}")
 
+
+def sign_file(file_path,private_key):
+
+        with open(file_path, "rb") as f:
+            message = f.read() 
+
+        hash_value = SHA256.new(message)
+        key = RSA.import_key(private_key)
+
+        # Get the signature
+        signer = PKCS1_v1_5.new(key)
+        signature = signer.sign(hash_value)
+        generate_Signature_file(signature)
+
+
+def verify_signature(file_path, public_key):
+    
+        with open(file_path, "rb") as f:
+            message = f.read() 
+
+        # Open the recieved signature file:
+        with open('signature.pem', "rb") as f:
+            signature = f.read() 
+        key = RSA.importKey(public_key)
+
+        generated_hash_value = SHA256.new(message)
+        # Check if the generated and recieved values are the same
+        PKCS1_v1_5.new(key).verify(generated_hash_value,signature)
+        
+        
 #On_click functions
 
 
@@ -164,35 +193,6 @@ def on_decrypt_button_click():
     except Exception as e:
         messagebox.showinfo("Error", f"Decryption error: {e}")
 
-def sign_file(file_path,private_key):
-
-        with open(file_path, "rb") as f:
-            message = f.read() 
-
-        hash_value = SHA256.new(message)
-        key = RSA.import_key(private_key)
-
-        # Get the signature
-        signer = PKCS1_v1_5.new(key)
-        signature = signer.sign(hash_value)
-        generate_Signature_file(signature)
-
-
-def verify_signature(file_path, public_key):
-    
-        with open(file_path, "rb") as f:
-            message = f.read() 
-
-        # Open the recieved signature file:
-        with open('signature.pem', "rb") as f:
-            signature = f.read() 
-        key = RSA.importKey(public_key)
-
-        generated_hash_value = SHA256.new(message)
-        # Check if the generated and recieved values are the same
-        PKCS1_v1_5.new(key).verify(generated_hash_value,signature)
-        
-        
 
 def on_sign_button_click():
     # GUI prompt for private key path
