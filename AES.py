@@ -12,6 +12,7 @@ from tkinter import simpledialog, filedialog, messagebox
 # Constants
 SALT_FILE = "salt.txt"
 file_path = ""
+IV = b'0000000000000000'
 ENCRYPTED_FILE = "Encrypted.txt"
 DECRYPTED_FILE = "Decrypted.txt"
 AES_BLOCK_SIZE = AES.block_size
@@ -27,34 +28,29 @@ def derive_key_from_password(password, salt):
     return PBKDF2(password, salt, dkLen=32)
 
 
-def encrypt_file(file_path, key, iv):
+def encrypt_file(file_path, key):
     with open(file_path, "rb") as f:
         message = f.read()
 
-    cipher = AES.new(key, AES.MODE_CBC, iv)
+    cipher = AES.new(key, AES.MODE_CBC, IV)
     ciphered_data = cipher.encrypt(pad(message, AES_BLOCK_SIZE))
 
     with open(ENCRYPTED_FILE, 'wb') as f:
-        f.write(iv)
+        f.write(IV)
         f.write(ciphered_data)
 
 
-def decrypt_file(file_path, key, iv):
+def decrypt_file(file_path, key):
     try:
         with open(file_path, 'rb') as f:
             original_iv = f.read(16)
             decrypt_data = f.read()
+            cipher = AES.new(key, AES.MODE_CBC, IV)
+            original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
+            with open(DECRYPTED_FILE, 'wb') as f:
+                f.write(original)
 
-            if original_iv == iv:
-                cipher = AES.new(key, AES.MODE_CBC, iv)
-                original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
-                with open(DECRYPTED_FILE, 'wb') as f:
-                    f.write(original)
-
-                messagebox.showinfo("Success", "Decryption completed successfully.")
-            else:
-                tk.messagebox.showerror(title="IV error" , message="Incorrect IV, please try again!")
-
+            messagebox.showinfo("Success", "Decryption completed successfully.")
     except Exception as e:
         tk.messagebox.showerror(title="Decryption Error" ,message="Incorrect password, please try again!" )
 
@@ -86,12 +82,12 @@ def on_encrypt_button_click():
             break
 
     # taking iv from user and checking its validity
-    while True:
-        iv = simpledialog.askstring("Initialization vector", "Enter your initialization vector (16 characters):" , show="*")
-        if iv == "" or len(iv) != 16:
-            tk.messagebox.showerror(title="Invalid IV", message="Please enter a valid IV as described")
-        else:
-            break
+    # while True:
+    #     iv = simpledialog.askstring("Initialization vector", "Enter your initialization vector (16 characters):" , show="*")
+    #     if iv == "" or len(iv) != 16:
+    #         tk.messagebox.showerror(title="Invalid IV", message="Please enter a valid IV as described")
+    #     else:
+    #         break
 
     with open(SALT_FILE, 'rb') as f:
         salt = f.read()
@@ -99,7 +95,7 @@ def on_encrypt_button_click():
     key = derive_key_from_password(password, salt)
 
     try:
-        encrypt_file(file_path, key, iv.encode())
+        encrypt_file(file_path, key)
         messagebox.showinfo("Success", "Encryption completed successfully.")
     except Exception as e:
         messagebox.showerror("Error", f"Encryption error: {e}")
@@ -107,8 +103,7 @@ def on_encrypt_button_click():
 def on_decrypt_button_click():
     # GUI prompts for password and initialization vector
     password = simpledialog.askstring("Input", "Enter your decryption password:", show="*")
-    dec_iv = simpledialog.askstring("Input", "Enter your initialization vector (16 characters):", show="*")
-
+    # dec_iv = simpledialog.askstring("Input", "Enter your initialization vector (16 characters):", show="*")
     # if not password or not dec_iv or len(dec_iv) != 16:
     #     messagebox.showerror("Error", "Invalid password or initialization vector.")
     #     return
@@ -119,7 +114,7 @@ def on_decrypt_button_click():
     key = derive_key_from_password(password, salt)
 
     try:
-        decrypt_file(ENCRYPTED_FILE, key, dec_iv.encode())
+        decrypt_file(ENCRYPTED_FILE, key)
         # messagebox.showinfo("Success", "Decryption completed successfully.")
     except Exception as e:
         messagebox.showinfo("Error", f"Decryption error: {e}")
