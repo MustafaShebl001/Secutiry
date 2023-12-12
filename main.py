@@ -143,8 +143,54 @@ def on_verify_and_decrypt_button_click():
         messagebox.showerror("Error", f"Verification error: {e}")
 
     
-#def Create_certificate(): ?
-#def Verify_certificate(): ?
+def on_Create_certificate_button_click(): 
+    # GUI prompt for subject name
+    subject_name = simpledialog.askstring("Subject Name", "Enter your subject name:")
+    if subject_name == "":
+        tk.messagebox.showerror(title="Empty subject name", message="Please enter a subject name")
+        return
+    # GUI prompt for private key path
+    private_key_path = filedialog.askopenfilename(title="Select Private Key File")
+
+    if not private_key_path:
+        messagebox.showerror("Error", "Invalid private key path.")
+        return
+
+    with open(private_key_path, 'rb') as f:
+        private_key = f.read()
+
+    try:
+        create_self_signed_certificate(subject_name, private_key)
+        messagebox.showinfo("Success", "Certificate created successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Certificate creation error: {e}")
+
+def on_Verify_using_certificate_button_click():
+    #GUI prompt for data file path
+    data_file_path = filedialog.askopenfilename(title="Select data File")
+    if not data_file_path:
+        messagebox.showerror("Error", "Invalid data file path.")
+        return
+
+    #GUI prompt for signature file path
+    signature_file_path = filedialog.askopenfilename(title="Select signature File")
+    if not signature_file_path:
+        messagebox.showerror("Error", "Invalid signature file path.")
+        return
+
+    #GUI prompt for subject name
+    subject_name = simpledialog.askstring("Subject Name", "Enter your subject name:")
+    if subject_name == "":
+        tk.messagebox.showerror(title="Empty subject name", message="Please enter a subject name")
+        return
+    
+    try:
+        verify_using_certificate(data_file_path, signature_file_path, subject_name)
+        messagebox.showinfo("Success", "Signature verified successfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Verification error: {e}")
+
+    
 
 
 
@@ -181,5 +227,14 @@ button_sign_and_encrypt.grid(row=4, column=0, columnspan=2, pady=20)
 # Verify and Decrypt Section
 button_verify_and_decrypt = tk.Button(frm, text="Verify and Decrypt", command=on_verify_and_decrypt_button_click)
 button_verify_and_decrypt.grid(row=5, column=0, columnspan=2, pady=20)
+
+# Certificate Section
+button_create_certificate = tk.Button(frm, text="Create Certificate", command=on_Create_certificate_button_click)
+button_create_certificate.grid(row=6, column=0, columnspan=2, pady=20)
+
+# Verify using Certificate Section
+button_verify_using_certificate = tk.Button(frm, text="Verify using Certificate", command=on_Verify_using_certificate_button_click)
+button_verify_using_certificate.grid(row=7, column=0, columnspan=2, pady=20)
+
 
 root.mainloop()
