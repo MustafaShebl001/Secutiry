@@ -6,16 +6,22 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import tkinter as tk
+from Crypto.Cipher import DES3
+from hashlib import  md5
 from tkinter import filedialog,ttk
 from tkinter import simpledialog, filedialog, messagebox
 
 
 # Constants
 SALT_FILE = "salt.txt"
+SALT_des3_FILE = "desSalt.txt"
+nonce = b'0'
 SIGNATURE_FILE = "signature.pem"
 IV = b'0000000000000000'
-ENCRYPTED_FILE = "Encrypted.txt"
-DECRYPTED_FILE = "Decrypted.txt"
+ENCRYPTED_AES_FILE = "EncryptedAES.txt"
+DECRYPTED_AES_FILE = "DecryptedAES.txt"
+ENCRYPTED_DES_FILE = "EncryptedDES.txt"
+DECRYPTED_DES_FILE = "DecryptedDES.txt"
 AES_BLOCK_SIZE = AES.block_size
 PRIVATE_KEY_FILE = "private_key.pem"
 PUBLIC_KEY_FILE = "public_key.pem"
@@ -26,14 +32,32 @@ def generate_salt_file():
     with open(SALT_FILE, 'wb') as f:
         f.write(simple_key)
 
+def generate_des_salt_file():
+    simple_key = get_random_bytes(8)
+    with open(SALT_des3_FILE, 'wb') as f:
+        f.write(simple_key)
+
 
 def generate_Signature_file(signature):
         with open(SIGNATURE_FILE, 'wb') as f:
             f.write(signature)
 
-def derive_key_from_password(password, salt):
+def derive_aes_key_from_password(password, salt):
     return PBKDF2(password, salt, dkLen=32)
 
+def derive_des3_key_from_password(password, salt):
+    return PBKDF2(password, salt, dkLen=16)
+
+#Triple Des encryption
+def triple_des_enc(file_path, des3_key):
+    with open(file_path,'rb')as f:
+        message = f.read()
+
+    cipher = DES3.new(des3_key,DES3.MODE_EAX,nonce)
+    ciphered_data = cipher.encrypt(message)
+
+    with open(ENCRYPTED_DES_FILE , 'wb') as f:
+        f.write(ciphered_data)
 
 def encrypt_file(file_path, key):
     with open(file_path, "rb") as f:
@@ -42,9 +66,24 @@ def encrypt_file(file_path, key):
     cipher = AES.new(key, AES.MODE_CBC, IV)
     ciphered_data = cipher.encrypt(pad(message, AES_BLOCK_SIZE))
 
-    with open(ENCRYPTED_FILE, 'wb') as f:
+    with open(ENCRYPTED_AES_FILE, 'wb') as f:
         f.write(IV)
         f.write(ciphered_data)
+
+
+# Triple Des decryption
+def triple_des_dec(file_path, des3_key):
+    try:
+        with open(file_path,'rb') as f:
+            decrypted_data = f.read()
+            cipher = DES3.new(des3_key,DES3.MODE_EAX,nonce)
+            decrypted_file = cipher.decrypt(decrypted_data)
+            with open(DECRYPTED_DES_FILE,'wb') as f:
+                f.write(decrypted_file)
+        messagebox.showinfo("Success", "Decryption completed successfully.")
+
+    except Exception as e:
+        tk.messagebox.showerror(title="Decryption Error" ,message="Incorrect password, please try again!" )
 
 
 def decrypt_file(file_path, key):
@@ -54,7 +93,7 @@ def decrypt_file(file_path, key):
             decrypt_data = f.read()
             cipher = AES.new(key, AES.MODE_CBC, IV)
             original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
-            with open(DECRYPTED_FILE, 'wb') as f:
+            with open(DECRYPTED_AES_FILE, 'wb') as f:
                 f.write(original)
 
             messagebox.showinfo("Success", "Decryption completed successfully.")
