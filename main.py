@@ -123,6 +123,14 @@ def on_sign_button_click():
     except Exception as e:
         messagebox.showerror("Error", f"Signing error: {e}")
 
+def on__generate_keys_button_click():
+     
+    try:
+        generate_rsa_key_pair()
+        messagebox.showinfo("Success", "Keys generated sucessfully.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Signing error: {e}")
+    
 
 def on_verify_button_click():
     # GUI prompt for public key path
@@ -215,25 +223,30 @@ button_encrypt.grid(row=2, column=0, pady=20, padx=20)
 button_decrypt = tk.Button(frm, text="Decrypt", command=on_aes_decrypt_button_click)
 button_decrypt.grid(row=2, column=1, pady=20, padx=10)
 
+# Key Pair Generation Section
+button_generate_keys = tk.Button(frm, text="Generate Keys", command= on__generate_keys_button_click)
+button_generate_keys.grid(row= 3, column=0, columnspan=2, pady=20)
+
+
 # Digital Signature Section
 button_sign = tk.Button(frm, text="Sign", command=on_sign_button_click)
-button_sign.grid(row=3, column=0, pady=20)
+button_sign.grid(row=4, column=0, pady=20)
 #
 button_verify = tk.Button(frm, text="Verify Signature", command=on_verify_button_click)
-button_verify.grid(row=3, column=1, pady=20)
+button_verify.grid(row=4, column=1, pady=20)
 
 button_sign_and_encrypt = tk.Button(frm, text="Sign and Encrypt", command=on_sign_and_encrypt_button_click)
-button_sign_and_encrypt.grid(row=4, column=0, columnspan=2, pady=20)
+button_sign_and_encrypt.grid(row=5, column=0, columnspan=2, pady=20)
 # Verify and Decrypt Section
 button_verify_and_decrypt = tk.Button(frm, text="Verify and Decrypt", command=on_verify_and_decrypt_button_click)
-button_verify_and_decrypt.grid(row=5, column=0, columnspan=2, pady=20)
+button_verify_and_decrypt.grid(row=6, column=0, columnspan=2, pady=20)
 
 # Triple Des encryption
 button_des3_enc = tk.Button(frm, text="DES3 Enc", command=on_des_encrypt_button_click)
-button_des3_enc.grid(row=6, column=0, pady=20)
+button_des3_enc.grid(row=7, column=0, pady=20)
 
 # Triple Des decryption
 button_des3_dec = tk.Button(frm, text="DES3 Dec", command=on_des_decrypt_button_click)
-button_des3_dec.grid(row=6, column=1, pady=20)
+button_des3_dec.grid(row=7, column=1, pady=20)
 
 root.mainloop()
