@@ -1,12 +1,11 @@
 # Secutiry
-Using pyCryptodome to implement encryption and decryption using different encryption standards (AES), also integrating it RSA with hashing SHA512 to implement digital signature and verification beside producing certificates
-This project provides a GUI with different buttons and functionality:
-2 buttons for ENC/DEC in AES256.
-2 buttons for ENC/DEC in Triple DES (key size 16 bytes).
-2 buttons for SIGN/VERIFY in RSA2048.
-2 buttons for ENC-SIGN/DEC-VERIFY.
-one button for RSA Key pair generation.
-one button for self-signed Certificate.
-one button for verifying the Certificate.
+Use Pycryptodome to:
+-Encrypt/Decrypt files using AES256 and triple DES.
+-Generate RSA key pairs.
+-Sign/Verify files using RSA2048 and SHA512.
+-Sign+Encrypt/Verify+Decrypt files using RSA2048, SHA512, and AES256.
+-Generate self-signed certificate.
+-Verify the signature on the certificate.
 
-You can specify the file you want to operate on by clicking the button then selecting the file path.
+For each of the perivous points there is a button on out GUI, you can specify the file you want to operate on by clicking the button then navigate to the file.
+For each operation there is a new file created. 
