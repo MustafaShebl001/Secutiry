@@ -16,6 +16,7 @@ from datetime import *
 from tkinter import simpledialog, filedialog, messagebox
 import datetime
 from cryptography import x509
+import os
 from cryptography.hazmat.primitives import serialization, hashes, padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -25,12 +26,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 
-# from main import flag
-
 
 def generate_self_signed_certificate(public_key_pem):
     # Load the public key
-    public_key = serialization.load_pem_public_key(public_key_pem, backend=default_backend())
+    public_key = serialization.load_pem_public_key(
+        public_key_pem, backend=default_backend())
     try:
         # Create a self-signed certificate
         builder = (
@@ -40,7 +40,8 @@ def generate_self_signed_certificate(public_key_pem):
             .public_key(public_key)
             .serial_number(x509.random_serial_number())
             .not_valid_before(datetime.datetime.utcnow())
-            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))  # Valid for one year
+            # Valid for one year
+            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
         )
         # Sign the certificate with a dummy private key (self-signed)
         private_key = rsa.generate_private_key(
@@ -49,7 +50,8 @@ def generate_self_signed_certificate(public_key_pem):
             backend=default_backend()
         )
         # certificate = builder.sign(private_key, x509.CertificateBuilder.)
-        certificate = builder.sign(private_key, hashes.SHA256(), default_backend())
+        certificate = builder.sign(
+            private_key, hashes.SHA256(), default_backend())
 
         # Serialize the certificate to PEM format
         certificate_pem = certificate.public_bytes(serialization.Encoding.PEM)
@@ -63,17 +65,23 @@ def generate_self_signed_certificate(public_key_pem):
         )
         with open("certificate_pubK.pem", 'wb') as f:
             f.write(public_key_pem)
-        messagebox.showinfo("Authority public key", "Authority public key file is created")
+        messagebox.showinfo("Authority public key",
+                            "Authority public key file is created")
         with open("certificate.crt", 'wb') as f:
             f.write(certificate_pem)
-        messagebox.showinfo("Cert Created","Certificate is created successfully")
+        messagebox.showinfo(
+            "Cert Created", "Certificate is created successfully")
     except Exception as e:
-        messagebox.showerror("Cert can't be created","Error in certificate creation")
+        messagebox.showerror("Cert can't be created",
+                             "Error in certificate creation")
+
 
 def verify_certificate(certificate_pem, issuer_public_key_pem):
     # Load the certificate and issuer's public key
-    certificate = x509.load_pem_x509_certificate(certificate_pem, default_backend())
-    issuer_public_key = serialization.load_pem_public_key(issuer_public_key_pem, backend=default_backend())
+    certificate = x509.load_pem_x509_certificate(
+        certificate_pem, default_backend())
+    issuer_public_key = serialization.load_pem_public_key(
+        issuer_public_key_pem, backend=default_backend())
 
     # Verify the certificate
     try:
@@ -83,9 +91,11 @@ def verify_certificate(certificate_pem, issuer_public_key_pem):
             padding.PKCS1v15(),
             certificate.signature_hash_algorithm,
         )
-        messagebox.showinfo("Valid cert","This certificate is verified")
+        messagebox.showinfo("Valid cert", "This certificate is verified")
     except Exception as e:
-        messagebox.showerror("Invalid cert", "This certificate is not verified")
+        messagebox.showerror(
+            "Invalid cert", "This certificate is not verified")
+
 
 # Constants
 SALT_FILE = "salt.txt"
@@ -101,7 +111,6 @@ AES_BLOCK_SIZE = AES.block_size
 PRIVATE_KEY_FILE = "private_key.pem"
 PUBLIC_KEY_FILE = "public_key.pem"
 Flag = False
-
 
 
 # Normal functions
@@ -160,7 +169,6 @@ def encrypt_file(file_path, key):
             Flag = False
 
 
-
 # Triple Des decryption
 def triple_des_dec(file_path, des3_key):
     try:
@@ -173,7 +181,8 @@ def triple_des_dec(file_path, des3_key):
         messagebox.showinfo("Success", "Decryption completed successfully.")
 
     except Exception as e:
-        tk.messagebox.showerror(title="Decryption Error", message="Incorrect password, please try again!")
+        tk.messagebox.showerror(title="Decryption Error",
+                                message="Incorrect password, please try again!")
 
 
 def decrypt_file(file_path, key):
@@ -186,9 +195,11 @@ def decrypt_file(file_path, key):
             with open(DECRYPTED_AES_FILE, 'wb') as f:
                 f.write(original)
 
-            messagebox.showinfo("Success", "Decryption completed successfully.")
+            messagebox.showinfo(
+                "Success", "Decryption completed successfully.")
     except Exception as e:
-        tk.messagebox.showerror(title="Decryption Error", message="Incorrect password, please try again!")
+        tk.messagebox.showerror(title="Decryption Error",
+                                message="Incorrect password, please try again!")
 
 
 # Generate RSA key pairs and save them to files
@@ -205,10 +216,11 @@ def generate_rsa_key_pair():
 
 
 def sign_file(file_path, private_key):
+    global Flag
     with open(file_path, 'rb') as file:
         data = file.read()
 
-    with open("Signed_File.sgn",'wb')as signed_file:
+    with open("Signed_File.sgn", 'wb')as signed_file:
         signed_file.write(data)
 
     key = RSA.import_key(private_key)
@@ -239,7 +251,8 @@ def verify_signature(file_path, public_key):
         signature = data[signature_start + len(b'\nSIGNATURE\n'):signature_end]
 
         # Extract the original content (excluding the signature) for verification
-        original_content = data[:signature_start] + data[signature_end + len(b'\nEND OF SIGNATURE\n'):]
+        original_content = data[:signature_start] + \
+            data[signature_end + len(b'\nEND OF SIGNATURE\n'):]
 
         # Verify the signature against the original content
         key = RSA.import_key(public_key)
@@ -247,9 +260,11 @@ def verify_signature(file_path, public_key):
 
         try:
             pkcs1_15.new(key).verify(h, signature)
-            messagebox.showinfo("Verified","This file is verified successfully")
+            messagebox.showinfo(
+                "Verified", "This file is verified successfully")
         except (ValueError, TypeError):
-            messagebox.showerror("Unverified","This file is not verified")
+            messagebox.showerror("Unverified", "This file is not verified")
+
 
 def verify_and_decrypt_file(file_path, signature_file, key):
     try:
@@ -267,7 +282,8 @@ def verify_and_decrypt_file(file_path, signature_file, key):
         # Decrypt the file
         decrypt_file(file_path, key)
 
-        messagebox.showinfo("Success", "Verification and Decryption completed successfully.")
+        messagebox.showinfo(
+            "Success", "Verification and Decryption completed successfully.")
     except Exception as e:
-        messagebox.showerror("Error", f"Verification and Decryption error: {e}")
-
+        messagebox.showerror(
+            "Error", f"Verification and Decryption error: {e}")
