@@ -2,13 +2,20 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinter import simpledialog, filedialog, messagebox
 from Cryptofunctions import *
+Flag2 = False
+err = False
 
 # On_click functions
 # Generate a self-signed certificate with the passed public key
 
 
 def on_generate_certificate():
-    with open("public_key.pem", 'rb')as f:
+    public_key_cert = filedialog.askopenfilename(
+        title="Select public key to generate certificate to")
+    if not public_key_cert:
+        messagebox.showerror("Error", "Invalid file path.")
+        return
+    with open(public_key_cert, 'rb')as f:
         public_key_cert = f.read()
     generate_self_signed_certificate(public_key_cert)
 
@@ -109,9 +116,11 @@ def on_des_encrypt_button_click():
 
 
 def on_aes_decrypt_button_click():
+    global err
     AES_file_path = filedialog.askopenfilename(title="Select File to Decrypt")
     if not AES_file_path:
         messagebox.showerror("Error", "Invalid file path.")
+        err = True
         return
     # GUI prompts for password and initialization vector
     password = simpledialog.askstring(
@@ -123,10 +132,11 @@ def on_aes_decrypt_button_click():
     key = derive_aes_key_from_password(password, salt)
 
     try:
-        decrypt_file(AES_file_path, key)
+        decrypt_file(AES_file_path, key, Flag2)
         # messagebox.showinfo("Success", "Decryption completed successfully.")
     except Exception as e:
         messagebox.showinfo("Error", f"Decryption error: {e}")
+        return
 
 
 def on_des_decrypt_button_click():
@@ -312,24 +322,28 @@ def on_verify_button_click():
 
 
 def on_verify_and_decrypt_button_click():
+    global Flag2
+    Flag2 = True
     on_aes_decrypt_button_click()
     # GUI prompt for public key path
-    public_key_path = filedialog.askopenfilename(
-        title="Select Public Key File")
+    if not err:
+        public_key_path = filedialog.askopenfilename(
+            title="Select Public Key File")
 
-    if not public_key_path:
-        messagebox.showerror("Error", "Invalid public key path.")
-        return
+        if not public_key_path:
+            messagebox.showerror("Error", "Invalid public key path.")
+            # err = True
+            return
 
-    with open(public_key_path, 'rb') as f:
-        public_key = f.read()
-
-    try:
-        verify_signature('DecryptedAES.txt', public_key)
-        messagebox.showinfo(
-            "Success", "Signature and decryption verified successfully.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Verification error: {e}")
+        with open(public_key_path, 'rb') as f:
+            public_key = f.read()
+        try:
+            verify_signature('DecryptedAES.txt', public_key)
+            messagebox.showinfo(
+                "Success", "Signature and decryption verified successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Verification error: {e}")
+        Flag2 = False
 
 
 # GUI
