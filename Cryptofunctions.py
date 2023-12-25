@@ -25,6 +25,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
+# Flag2 = False
 
 
 def generate_self_signed_certificate(public_key_pem):
@@ -185,21 +186,37 @@ def triple_des_dec(file_path, des3_key):
                                 message="Incorrect password, please try again!")
 
 
-def decrypt_file(file_path, key):
-    try:
-        with open(file_path, 'rb') as f:
-            original_iv = f.read(16)
-            decrypt_data = f.read()
-            cipher = AES.new(key, AES.MODE_CBC, IV)
-            original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
-            with open(DECRYPTED_AES_FILE, 'wb') as f:
-                f.write(original)
+def decrypt_file(file_path, key, Flage2):
+    if Flage2 == False:
+        try:
+            with open(file_path, 'rb') as f:
+                original_iv = f.read(16)
+                decrypt_data = f.read()
+                cipher = AES.new(key, AES.MODE_CBC, IV)
+                original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
+                with open(DECRYPTED_AES_FILE, 'wb') as f:
+                    f.write(original)
 
-            messagebox.showinfo(
-                "Success", "Decryption completed successfully.")
-    except Exception as e:
-        tk.messagebox.showerror(title="Decryption Error",
-                                message="Incorrect password, please try again!")
+                messagebox.showinfo(
+                    "Success", "Decryption completed successfully.")
+        except Exception as e:
+            tk.messagebox.showerror(title="Decryption Error",
+                                    message="Incorrect password, please try again!")
+    else:
+        try:
+            with open(file_path, 'rb') as f:
+                original_iv = f.read(16)
+                decrypt_data = f.read()
+                cipher = AES.new(key, AES.MODE_CBC, IV)
+                original = unpad(cipher.decrypt(decrypt_data), AES_BLOCK_SIZE)
+                with open("Decrypted_Verified_File.txt", 'wb') as f:
+                    f.write(original)
+
+                messagebox.showinfo(
+                    "Success", "Decryption completed successfully.")
+        except Exception as e:
+            tk.messagebox.showerror(title="Decryption Error",
+                                    message="Incorrect password, please try again!")
 
 
 # Generate RSA key pairs and save them to files
@@ -266,24 +283,24 @@ def verify_signature(file_path, public_key):
             messagebox.showerror("Unverified", "This file is not verified")
 
 
-def verify_and_decrypt_file(file_path, signature_file, key):
-    try:
-        # Load RSA public key
-        with open(PUBLIC_KEY_FILE, 'rb') as f:
-            public_key = RSA.import_key(f.read())
+# def verify_and_decrypt_file(file_path, signature_file, key):
+#     try:
+#         # Load RSA public key
+#         with open(PUBLIC_KEY_FILE, 'rb') as f:
+#             public_key = RSA.import_key(f.read())
 
-        # Verify the signature
-        with open(signature_file, 'rb') as f:
-            signature = f.read()
-        with open(file_path, 'rb') as f:
-            data_to_verify = f.read()
-        public_key.verify(data_to_verify, signature)
+#         # Verify the signature
+#         with open(signature_file, 'rb') as f:
+#             signature = f.read()
+#         with open(file_path, 'rb') as f:
+#             data_to_verify = f.read()
+#         public_key.verify(data_to_verify, signature)
 
-        # Decrypt the file
-        decrypt_file(file_path, key)
+#         # Decrypt the file
+#         decrypt_file(file_path, key)
 
-        messagebox.showinfo(
-            "Success", "Verification and Decryption completed successfully.")
-    except Exception as e:
-        messagebox.showerror(
-            "Error", f"Verification and Decryption error: {e}")
+#         messagebox.showinfo(
+#             "Success", "Verification and Decryption completed successfully.")
+#     except Exception as e:
+#         messagebox.showerror(
+#             "Error", f"Verification and Decryption error: {e}")
